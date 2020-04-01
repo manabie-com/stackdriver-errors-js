@@ -24,7 +24,8 @@ var baseAPIUrl = 'https://clouderrorreporting.googleapis.com/v1beta1/projects/';
 /**
  * An Error handler that sends errors to the Stackdriver Error Reporting API.
  */
-var StackdriverErrorReporter = function() {};
+var StackdriverErrorReporter = function () {
+};
 
 /**
  * Initialize the StackdriverErrorReporter object.
@@ -39,7 +40,7 @@ var StackdriverErrorReporter = function() {};
  * @param {Boolean} [config.reportUncaughtExceptions=true] - Set to false to stop reporting unhandled exceptions.
  * @param {Boolean} [config.disabled=false] - Set to true to not report errors when calling report(), this can be used when developping locally.
  */
-StackdriverErrorReporter.prototype.start = function(config) {
+StackdriverErrorReporter.prototype.start = function (config) {
   if (!config.key && !config.targetUrl && !config.customReportingFunction) {
     throw new Error('Cannot initialize: No API key, target url or custom reporting function provided.');
   }
@@ -52,7 +53,7 @@ StackdriverErrorReporter.prototype.start = function(config) {
   this.projectId = config.projectId;
   this.targetUrl = config.targetUrl;
   this.context = config.context || {};
-  this.serviceContext = {service: config.service || 'web'};
+  this.serviceContext = { service: config.service || 'web' };
   if (config.version) {
     this.serviceContext.version = config.version;
   }
@@ -63,13 +64,14 @@ StackdriverErrorReporter.prototype.start = function(config) {
   registerHandlers(this);
 };
 
-function registerHandlers(reporter) {
+function registerHandlers (reporter) {
   // Register as global error handler if requested
-  var noop = function() {};
+  var noop = function () {
+  };
   if (reporter.reportUncaughtExceptions) {
     var oldErrorHandler = window.onerror || noop;
 
-    window.onerror = function(message, source, lineno, colno, error) {
+    window.onerror = function (message, source, lineno, colno, error) {
       if (error) {
         reporter.report(error).catch(noop);
       }
@@ -80,7 +82,7 @@ function registerHandlers(reporter) {
   if (reporter.reportUnhandledPromiseRejections) {
     var oldPromiseRejectionHandler = window.onunhandledrejection || noop;
 
-    window.onunhandledrejection = function(promiseRejectionEvent) {
+    window.onunhandledrejection = function (promiseRejectionEvent) {
       if (promiseRejectionEvent) {
         reporter.report(promiseRejectionEvent.reason).catch(noop);
       }
@@ -95,9 +97,11 @@ function registerHandlers(reporter) {
  * @param {Error|String} err - The Error object or message string to report.
  * @param {Object} options - Configuration for this report.
  * @param {number} [options.skipLocalFrames=1] - Omit number of frames if creating stack.
+ * @param {string} [options.user] - The user that is suffering from this error or causing this error.
+ * @param {string} [options.additional] - Additional message.
  * @returns {Promise} A promise that completes when the report has been sent.
  */
-StackdriverErrorReporter.prototype.report = function(err, options) {
+StackdriverErrorReporter.prototype.report = function (err, options) {
   if (this.disabled) {
     return Promise.resolve(null);
   }
@@ -108,7 +112,7 @@ StackdriverErrorReporter.prototype.report = function(err, options) {
 
   var payload = {};
   payload.serviceContext = this.serviceContext;
-  payload.context = this.context;
+  payload.context = Object.assign({}, this.context, { user: options.user, additional: options.additional });
   payload.context.httpRequest = {
     userAgent: window.navigator.userAgent,
     url: window.location.href,
@@ -132,7 +136,7 @@ StackdriverErrorReporter.prototype.report = function(err, options) {
   var customFunc = this.customReportingFunction;
 
   return resolveError(err, firstFrameIndex)
-    .then(function(message) {
+    .then(function (message) {
       payload.message = message;
       if (customFunc) {
         return customFunc(payload);
@@ -141,9 +145,9 @@ StackdriverErrorReporter.prototype.report = function(err, options) {
     });
 };
 
-function resolveError(err, firstFrameIndex) {
+function resolveError (err, firstFrameIndex) {
   // This will use sourcemaps and normalize the stack frames
-  return StackTrace.fromError(err).then(function(stack) {
+  return StackTrace.fromError(err).then(function (stack) {
     var lines = [err.toString()];
     // Reconstruct to a JS stackframe as expected by Error Reporting parsers.
     for (var s = firstFrameIndex; s < stack.length; s++) {
@@ -158,7 +162,7 @@ function resolveError(err, firstFrameIndex) {
       ].join(''));
     }
     return lines.join('\n');
-  }, function(reason) {
+  }, function (reason) {
     // Failure to extract stacktrace
     return [
       'Error extracting stack trace: ', reason, '\n',
@@ -168,19 +172,19 @@ function resolveError(err, firstFrameIndex) {
   });
 }
 
-function sendErrorPayload(url, payload) {
+function sendErrorPayload (url, payload) {
   var xhr = new XMLHttpRequest();
   xhr.open('POST', url, true);
   xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
 
-  return new Promise(function(resolve, reject) {
-    xhr.onreadystatechange = function() {
+  return new Promise(function (resolve, reject) {
+    xhr.onreadystatechange = function () {
       if (xhr.readyState === 4) {
         var code = xhr.status;
         if (code >= 200 && code < 300) {
-          resolve({message: payload.message});
+          resolve({ message: payload.message });
         } else {
-          var condition = code ? code + ' http response'  : 'network error';
+          var condition = code ? code + ' http response' : 'network error';
           reject(new Error(condition + ' on stackdriver report'));
         }
       }
@@ -194,7 +198,7 @@ function sendErrorPayload(url, payload) {
  *
  * @param {string} user - the unique identifier of the user (can be ID, email or custom token) or `undefined` if not logged in.
  */
-StackdriverErrorReporter.prototype.setUser = function(user) {
+StackdriverErrorReporter.prototype.setUser = function (user) {
   this.context.user = user;
 };
 

@@ -7,7 +7,6 @@
     "clean": "rimraf dist/",
     "dist": "gulp lib-concat",
     "lint": "eslint --ignore-path .gitignore .",
-    "prepare": "npm run clean && npm run dist",
     "pretest": "npm run lint",
     "start": "gulp demo && http-server ./dist -o",
     "test": "mocha -r test/setup.js test/test.js"

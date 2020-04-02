@@ -39,6 +39,7 @@ var StackdriverErrorReporter = function () {
  * @param {String} [config.version] - version identifier.
  * @param {Boolean} [config.reportUncaughtExceptions=true] - Set to false to stop reporting unhandled exceptions.
  * @param {Boolean} [config.disabled=false] - Set to true to not report errors when calling report(), this can be used when developping locally.
+ * @param {Boolean} [config.enableGlobal=false] - allow the error report to register in window.onerror.
  */
 StackdriverErrorReporter.prototype.start = function (config) {
   if (!config.key && !config.targetUrl && !config.customReportingFunction) {
@@ -61,7 +62,8 @@ StackdriverErrorReporter.prototype.start = function (config) {
   this.reportUnhandledPromiseRejections = config.reportUnhandledPromiseRejections !== false;
   this.disabled = !!config.disabled;
 
-  registerHandlers(this);
+  //strictly check true if ensure that user want to enable global
+  config.enableGlobal === true ? registerHandlers(this): null;
 };
 
 function registerHandlers (reporter) {
